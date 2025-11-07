@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Álbum de Poemas</title>
+    <!-- Carga de Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Configuración de fuentes y base */
+        :root {
+            --font-display: 'Dancing Script', cursive;
+            --font-body: 'Crimson Text', serif;
+        }
+        body {
+            background-color: #f7f3f3; /* Blanco suave, casi beige */
+            font-family: var(--font-body);
+            color: #4a4a4a;
+        }
+        .header h1 {
+            font-family: var(--font-display);
+            font-size: 3.5rem; /* Ajuste para desktop */
+        }
+
+        /* Estilos de la Tarjeta de Poema */
+        .poem-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            border-left: 8px solid; /* Usado para el color dinámico */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100%; /* Asegura que todas las tarjetas tengan la misma altura en el grid */
+        }
+        .poem-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.1);
+        }
+        .poem-title {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            color: #8c2a4f; /* Color profundo del título */
+            border-bottom: 1px dashed #e0c5d6;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .poem-content {
+            white-space: pre-line; /* Preserva los saltos de línea (\n) del JS */
+            font-size: 1rem;
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+        .poem-category {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #a04071;
+            align-self: flex-start;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background-color: #fce7f3; /* Fondo suave para la etiqueta */
+        }
+
+        /* Estilos del Modal */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 10vh auto; /* 10% vertical, centrado horizontal */
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%; 
+            max-width: 500px; /* Ancho máximo para el formulario */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s forwards;
+            position: relative;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-content h2 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            color: #8c2a4f;
+            margin-bottom: 20px;
+        }
+
+        /* Estilos del Formulario */
+        #poemForm input[type="text"], 
+        #poemForm textarea, 
+        #poemForm select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        #poemForm textarea {
+            resize: vertical;
+        }
+        #poemForm label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #8c2a4f;
+        }
+        #poemForm button[type="submit"] {
+            background-color: #8c2a4f;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 700;
+            transition: background-color 0.3s;
+        }
+        #poemForm button[type="submit"]:hover {
+            background-color: #a04071;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            transition: color 0.3s;
+        }
+        .close:hover,
+        .close:focus {
+            color: #8c2a4f;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        /* Media Queries para Responsividad */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            .nav {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .nav-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            .poems-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="container mx-auto max-w-7xl">
+        
+        <!-- Header -->
+        <header class="header text-center mb-12 py-8 bg-pink-100/50 rounded-xl shadow-lg">
+            <h1 class="title text-pink-800">🌹 Para Mi Amor</h1>
+            <p class="subtitle text-xl text-pink-600 mt-2 font-semibold">Poemas que nacen de mi corazón para ti</p>
+        </header>
+
+        <!-- Navegación y Botones de Acción -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <nav id="filters" class="nav flex flex-wrap justify-center gap-3 bg-white p-3 rounded-xl shadow-inner md:w-3/4">
+                <button class="nav-btn bg-pink-500 text-white font-bold py-2 px-4 rounded-full active" data-filter="all">💕 Todos</button>
+                <button class="nav-btn text-pink-700 hover:bg-pink-100 py-2 px-4 rounded-full" data-filter="te amo">💗 Te Amo</button>
+                <button class="nav-btn text-pink-700 hover:bg-pink-100 py-2 px-4 rounded-full" data-filter="lo magico de amarte">🤍 Lo Mágico de Amarte</button>
+                <button class="nav-btn text-pink-700 hover:bg-pink-100 py-2 px-4 rounded-full" data-filter="animo">💪 Ánimo</button>
+                <button class="nav-btn text-pink-700 hover:bg-pink-100 py-2 px-4 rounded-full" data-filter="pausa">🧘 Pausa Necesaria</button>
+                <button class="nav-btn text-pink-700 hover:bg-pink-100 py-2 px-4 rounded-full" data-filter="promesas">💫 Promesas</button>
+                <button class="nav-btn text-pink-700 hover:bg-pink-100 py-2 px-4 rounded-full" data-filter="nuestros sueños">🌟 Nuestros Sueños</button>
+            </nav>
+            
+        </div>
+
+        <!-- Grid de poemas -->
+        <main>
+            <section id="poemsGrid" class="poems-grid grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <!-- Los poemas se cargan aquí con JavaScript -->
+            </section>
+        </main>
+
+        <!-- Modal para nuevo poema -->
+        <div class="modal" id="poemModal">
+            <div class="modal-content">
+                <span class="close" title="Cerrar">&times;</span>
+                <h2>✍️ Escribe un Poema para Ella</h2>
+                <form id="poemForm">
+                    <input type="text" id="poemTitle" placeholder="Título del poema" required>
+                    <textarea id="poemContent" placeholder="Escribe desde el corazón tu poema de amor..." rows="8" required></textarea>
+                    
+                    <label for="poemCategory">📚 Categoría:</label>
+                    <select id="poemCategory" required>
+                        <option value="">-- Elige una categoría --</option>
+                        <option value="te amo">💗 Te Amo</option>
+                        <option value="lo magico de amarte">🤍 Lo Mágico de Amarte</option>
+                        <option value="animo">💪 Ánimo</option>
+                        <option value="pausa">🧘 Pausa Necesaria</option>
+                        <option value="promesas">💫 Promesas</option>
+                        <option value="nuestros sueños">🌟 Nuestros Sueños</option>
+                    </select>
+                    
+                    <label for="poemColor">🎨 Color del borde (Personalización):</label>
+                    <input type="color" id="poemColor" value="#ff6b6b" class="h-10">
+                    
+                    <button type="submit">💾 Guardar Poema</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de la aplicación (JavaScript completo y corregido) -->
+    <script>
+    // Base de datos de poemas - CATEGORÍAS ACTUALIZADAS
+    let poems = [
+        // 💗 TE AMO (10 poemas)
+        {
+            id: 1,
+            title: "Te Amo por Ser Tú",
+            content: "Te amo por la forma en que tus ojos brillan cuando ríes,\npor ese gesto peculiar que haces cuando estás pensando.\nTe amo por tu risa contagiosa que llena la habitación,\npor tu manera única de ver el mundo con asombro infantil.\n\nTe amo por tus silencios cómplices y tus palabras sabias,\npor tus sueños locos y tus metas bien cimentadas.\nTe amo por ser auténtica en un mundo de copias,\npor mantener tu esencia pura entre tanta falsedad.\n\nEres la mujer que elegiría una y mil veces,\nen cualquier vida, en cualquier universo posible.",
+            category: "te amo",
+            color: "#ff6b6b"
+        },
+        {
+            id: 2,
+            title: "Te Amo por Tu Corazón",
+            content: "Te amo por la bondad que brota de tu alma sin esfuerzo,\npor cómo te conmueve el dolor ajeno y actúas para aliviarlo.\nTe amo por tu capacidad de perdonar cuando te hieren,\npor mantener la esperanza incluso en los días más grises.\n\nTe amo por tu corazón gigante que cabe todo el mundo,\npero que siempre guarda un espacio especial para mí.\nPor tu compasión que sana heridas invisibles,\npor tu empatía que comprende sin necesidad de palabras.\n\nTu corazón es el territorio más hermoso que he explorado,\ny prometo cuidarlo como el tesoro más valioso.",
+            category: "te amo",
+            color: "#e84393"
+        },
+        {
+            id: 3,
+            title: "Te Amo en los Detalles",
+            content: "Te amo en el café de las mañanas que preparas con amor,\nen las notas que dejas escondidas en mis libros.\nTe amo en tu forma de arroparme cuando tengo frío,\nen cómo memorizas mis gustos sin que te lo pida.\n\nTe amo en los días comunes y en las fechas especiales,\nen las rutinas que hemos creado y en las sorpresas.\nTe amo cuando me traes mi comida favorita sin razón,\ncuando me das el mejor pedazo sin pensarlo dos veces.\n\nSon estos pequeños actos los que construyen nuestro amor,\nladrillo a ladrillo, sonrisa a sonrisa, día a día.",
+            category: "te amo",
+            color: "#fd79a8"
+        },
+        {
+            id: 4,
+            title: "Te Amo por Tu Fortaleza",
+            content: "Te amo por tu fuerza silenciosa que enfrenta tormentas,\npor tu valentía para levantarte cada vez que caes.\nTe amo por no rendirte cuando el mundo te dice que lo hagas,\npor seguir adelante con la cabeza en alto y el corazón puro.\n\nTe amo por ser roca firme y al mismo tiempo río sereno,\npor tu capacidad de adaptarte sin perder tu esencia.\nTe amo por las batallas que has librado en silencio,\npor las victorias que celebras con humildad genuina.\n\nTu fortaleza me inspira a ser mejor cada día,\nme enseña que con amor y coraje todo es posible.",
+            category: "te amo",
+            color: "#ff7675"
+        },
+        {
+            id: 5,
+            title: "Te Amo por Tu Manera de Amar",
+            content: "Te amo por cómo me amas en mis días buenos y malos,\npor aceptar mis defectos y celebrar mis virtudes.\nTe amo por tu paciencia infinita cuando soy difícil,\npor tu comprensión cuando no tengo palabras para explicar.\n\nTe amo por tu amor incondicional que no pide nada a cambio,\npor tu entrega genuina que nace del corazón.\nTe amo por cómo transformas lo ordinario en extraordinario,\npor hacer que cada momento a tu lado sea especial.\n\nAmar así es un arte que dominas a la perfección,\ny yo soy el afortunado espectador de tu obra maestra.",
+            category: "te amo",
+            color: "#fab1a0"
+        },
+        {
+            id: 6,
+            title: "Te Amo por Tu Inteligencia",
+            content: "Te amo por tu mente brillante que resuelve misterios,\npor tu sabiduría que va más allá de los libros.\nTe amo por tu curiosidad insaciable por aprender,\npor tu capacidad de ver soluciones donde otros ven problemas.\n\nTe amo por nuestras conversaciones que duran hasta la madrugada,\npor cómo desafías mis ideas y expandes mi pensamiento.\nTe amo por tu ingenio rápido que siempre me sorprende,\npor tu humor inteligente que provoca risas genuinas.\n\nTu mente es un universo que nunca dejo de explorar,\nsiempre descubro nuevas galaxias de conocimiento y amor.",
+            category: "te amo",
+            color: "#e17055"
+        },
+        {
+            id: 7,
+            title: "Te Amo por Tu Sensibilidad",
+            content: "Te amo por cómo te emocionas con un atardecer hermoso,\npor las lágrimas que se asoman cuando ves algo conmovedor.\nTe amo por tu conexión profunda con la belleza del mundo,\npor tu capacidad de encontrar poesía en lo cotidiano.\n\nTe amo por tu alma de artista que ve colores donde yo veo gris,\npor tu corazón de poeta que transforma sentimientos en versos.\nTe amo por tu sensibilidad que enriquece mi existencia,\npor enseñarme a ver el mundo con nuevos ojos cada día.\n\nTu sensibilidad es el lienzo donde pintamos nuestros sueños,\nel papel donde escribimos nuestra historia de amor.",
+            category: "te amo",
+            color: "#fd79a8"
+        },
+        {
+            id: 8,
+            title: "Te Amo por Tu Compañía",
+            content: "Te amo por cómo llenas los silencios de significado,\npor convertir los momentos simples en recuerdos eternos.\nTe amo por ser mi mejor amiga y mi amor verdadero,\npor saber exactamente cuándo necesito un abrazo o un consejo.\n\nTe amo por las aventuras que emprendemos juntos,\npor la complicidad que hemos construido con el tiempo.\nTe amo por ser mi equipo, mi socia, mi compañera de vida,\npor enfrentar cada desafío conmigo mano a mano.\n\nTu compañía es el regalo más valioso que he recibido,\nel tesoro que protejo con cada latido de mi corazón.",
+            category: "te amo",
+            color: "#ff9ff3"
+        },
+        {
+            id: 9,
+            title: "Te Amo por Tu Autenticidad",
+            content: "Te amo por ser real en un mundo de apariencias,\npor mostrar tus vulnerabilidades sin miedo al qué dirán.\nTe amo por no seguir modas sino tu propio corazón,\npor mantener tus convicciones aunque estés sola en ellas.\n\nTe amo por tu honestidad que a veces duele pero siempre cura,\npor tu transparencia que no conoce máscaras ni disfraces.\nTe amo por mostrarte tal cual eres, sin edulcorantes,\npor permitirme amarte en tu versión más auténtica.\n\nEn un mundo de copias, tú eres el original más valioso,\nla obra maestra que el universo creó con esmero infinito.",
+            category: "te amo",
+            color: "#f8a5c2"
+        },
+        {
+            id: 10,
+            title: "Te Amo Simplemente Porque Sí",
+            content: "Te amo sin razones lógicas ni explicaciones racionales,\nte amo con un amor que trasciende la comprensión humana.\nTe amo con la certeza del sol que sale cada mañana,\ncon la naturalidad del aire que llena mis pulmones.\n\nTe amo no por lo que haces o por lo que eres,\nsino por el simple y milagroso hecho de que existes.\nTe amo como se ama a las estrellas: porque brillan,\ncomo se ama al mar: porque es inmenso y misterioso.\n\nMi amor por ti no necesita justificaciones ni motivos,\nes un hecho universal, una verdad incuestionable del cosmos.",
+            category: "te amo",
+            color: "#ff6b9d"
+        },
+
+        // 🤍 LO MÁGICO DE AMARTE (10 poemas)
+        {
+            id: 11,
+            title: "La Magia de Tu Mirada",
+            content: "Hay magia en tus ojos cuando me miras con ese brillo especial,\ncomo si fueran dos faros que iluminan mi camino oscuro.\nEn tu mirada encuentro el hogar que tanto busqué,\nel refugio seguro donde mi alma puede descansar.\n\nEs mágico cómo con solo una mirada puedes calmarme,\ncómo tus pupilas dicen más que mil palabras juntas.\nEn ese intercambio silencioso de almas que nos miramos,\nocurren milagros que la ciencia no puede explicar.\n\nTu mirada es el hechizo más poderoso que conozco,\nun conjuro de amor que me tiene hechizado para siempre.",
+            category: "lo magico de amarte",
+            color: "#a29bfe"
+        },
+        {
+            id: 12,
+            title: "Magia en Tus Besos",
+            content: "Tus besos tienen el poder de detener el tiempo,\nde hacer que el universo complete gire alrededor nuestro.\nCada beso es un hechizo que renueva mi ser,\nun sortilegio de amor que cura todas mis heridas.\n\nEs mágico cómo nuestros labios se encuentran siempre perfectamente,\ncomo piezas de un rompecabezas cósmico destinado a unirse.\nEn cada beso viajamos a dimensiones paralelas de placer,\ndonde solo existimos tú, yo y esta conexión divina.\n\nTus besos son poción mágica que me da vida eterna,\nel elixir de amor que bebo sediento cada día.",
+            category: "lo magico de amarte",
+            color: "#6c5ce7"
+        },
+        {
+            id: 13,
+            title: "La Alquimia de Tu Amor",
+            content: "Tu amor realiza la alquimia más prodigiosa del universo:\nconvierte mis lágrimas en risas, mis miedos en valentía.\nTransforma los días grises en arcoíris de colores,\nlas noches oscuras en cielos estrellados de esperanza.\n\nEs mágico cómo tu presencia cambia la química del aire,\nhow hace que todo a mi alrededor brille con nueva luz.\nTu amor es el fuego filosófico que todo lo purifica,\nla piedra filosofal que convierte lo ordinario en oro puro.\n\nEres la alquimista de mi corazón, la maga de mi alma,\nla hechicera que convirtió mi vida en un cuento de hadas.",
+            category: "lo magico de amarte",
+            color: "#786fa6"
+        },
+        {
+            id: 14,
+            title: "Magia en Tus Abrazos",
+            content: "Tus abrazos tienen poderes curativos sobrenaturales,\nsanan heridas que ni los mejores médicos podrían tratar.\nEn tus brazos encuentro la paz que tanto anhelé,\nel santuario donde todas mis piezas encajan perfectamente.\n\nEs mágico cómo un simple abrazo tuyo puede cambiarlo todo,\nhow transforma mi caos interno en armonía celestial.\nTus brazos son el círculo mágico que me protege del mundo,\nel hechizo de protección que aleja toda energía negativa.\n\nAbrazarte es como realizar un ritual sagrado de amor,\nuna ceremonia mística donde nuestras almas se funden.",
+            category: "lo magico de amarte",
+            color: "#574b90"
+        },
+        {
+            id: 15,
+            title: "El Hechizo de Tu Voz",
+            content: "Tu voz posee la magia de calmar tormentas internas,\nde aquietar los demonios que a veces habitan en mí.\nCada palabra tuya es un conjuro de amor y tranquilidad,\nun hechizo verbal que transforma mi realidad.\n\nEs mágico cómo tu tono puede elevarme a las nubes,\no cómo un susurro tuyo puede cambiar mi estado de ánimo.\nTu voz es la banda sonora mágica de mi vida,\nla melodía que hace que todo cobre sentido y belleza.\n\nEscucharte es como oír la voz del universo mismo,\nun recordatorio constante de que la magia existe y se llama amor.",
+            category: "lo magico de amarte",
+            color: "#8e44ad"
+        },
+        {
+            id: 16,
+            title: "Magia en los Pequeños Momentos",
+            content: "Lo más mágico de amarte son los instantes simples:\nel café compartido en silencio de las mañanas,\ntu mano buscando la mía mientras caminamos,\nese roce casual que envía electricidad por mi cuerpo.\n\nEs mágico cómo lo cotidiano se vuel extraordinario contigo,\nhow un domingo cualquiera se convierte en fecha memorable.\nLos momentos más comunes adquieren brillo sobrenatural,\ncomo si el tiempo mismo se detuviera para saborearlos.\n\nEstos pequeños instantes mágicos son los que tejen nuestro amor,\nlas hebras invisibles que unen nuestras almas eternamente.",
+            category: "lo magico de amarte",
+            color: "#9b59b6"
+        },
+        {
+            id: 17,
+            title: "La Magia de Tu Risa",
+            content: "Tu risa tiene el poder mágico de resucitar muertos,\nde devolverme la vida cuando siento que la pierdo.\nCada carcajada tuya es campanada de felicidad,\nconjuro auditivo que aleja nubes tormentosas.\n\nEs mágico cómo tu risa puede cambiar la energía de una habitación,\nhow ilumina espacios oscuros y calma corazones inquietos.\nTu risa es la varita mágica que transforma tristeza en alegría,\nel hechizo más efectivo contra la melancolía y el desaliento.\n\nEscucharte reír es mi hechizo favorito de todos,\nla magia pura que elijo experimentar una y otra vez.",
+            category: "lo magico de amarte",
+            color: "#e056fd"
+        },
+        {
+            id: 18,
+            title: "Magia en Tu Forma de Ver el Mundo",
+            content: "Es mágico cómo transformas mi perspectiva del mundo,\nhow me enseñas a ver belleza donde antes veía ordinario.\nTu mirada inocente y curiosa renueva mi asombro,\nme recuerda que la magia está en todas partes, solo hay que buscarla.\n\nA través de tus ojos descubro hadas en los jardines,\ndragones en las nubes, unicornios en los arcoíris.\nTu imaginación fértil siembra magia en mi realidad,\nconvirtiendo lo mundano en territorio de aventuras.\n\nAmar tu forma de ver el mundo es amar la magia misma,\nes abrazar la posibilidad de que todo sueño puede hacerse realidad.",
+            category: "lo magico de amarte",
+            color: "#be2edd"
+        },
+        {
+            id: 19,
+            title: "El Sortilegio de Tu Piel",
+            content: "Tu piel guarda el hechizo más antiguo del universo:\nel poder de convertir el tacto en lenguaje del alma.\nCada caricia es un conjuro que escribimos juntos,\nun sortilegio táctil que dice lo que las palabras no pueden.\n\nEs mágico cómo tu piel memoriza la historia de mis manos,\nhow responde al contacto como si fuéramos imanes cósmicos.\nTu temperatura es el hechizo que calma mi frío existencial,\nel fuego controlado que quema solo para darme calor.\n\nTocarte es realizar magia elemental, primitiva y pura,\nconjurar los espíritus del amor mediante el contacto sagrado.",
+            category: "lo magico de amarte",
+            color: "#ff9ff3"
+        },
+        {
+            id: 20,
+            title: "La Magia de Nuestra Conexión",
+            content: "Lo más mágico es nuestra conexión telepática inexplicable,\nhow sabemos lo que el otro piensa sin intercambiar palabras.\nEste hilo invisible que une nuestras almas a través del espacio,\nesta sintonía perfecta que desafía todas las leyes de la física.\n\nEs mágico cómo siento cuando necesitas que esté cerca,\nhow sabes exactamente qué decir para reconfortarme.\nNuestra conexión es el hechizo más poderoso que conozco,\nun lazo mágico que ni la distancia ni el tiempo pueden romper.\n\nEsta magia entre nosotros prueba que el destino existe,\nque algunas almas están destinadas a encontrarse y amarse.",
+            category: "lo magico de amarte",
+            color: "#f368e0"
+        },
+
+        // 💪 ÁNIMO (10 poemas)
+        {
+            id: 21,
+            title: "Eres Más Fuerte de lo que Crees",
+            content: "Mírate en el espejo y reconoce a la guerrera que eres,\na esa mujer que ha enfrentado tormentas y sigue en pie.\nCada cicatriz cuenta una historia de supervivencia,\ncada arruga sonrisas ganadas en batallas victoriosas.\n\nNo subestimes tu capacidad de resistir y vencer,\nhas demostrado una y otra vez que puedes con todo.\nEres como el bambú que se dobla pero no se rompe,\ncomo el roble que crece más fuerte después del viento.\n\nRecuerda: los días difíciles no duran para siempre,\npero tu fuerza interior sí es eterna e inquebrantable.",
+            category: "animo",
+            color: "#26de81"
+        },
+        {
+            id: 22,
+            title: "Este Momento También Pasará",
+            content: "Cuando sientas que no puedes más, respira hondo y recuerda:\nesta tempestad eventualmente amainará, este dolor se transformará.\nNada en la vida es permanente, ni la alegría ni la tristeza,\ntodo fluye y se transforma como las estaciones del año.\n\nLo que hoy te parece una montaña insuperable,\nmañana será solo una colina que dejaste atrás.\nConfía en el proceso, en el tiempo sanador,\nen tu capacidad de adaptarte y renacer.\n\nPermítete sentir, pero no te ahogues en el sentimiento,\nflota sobre las olas sabiendo que pronto llegarás a la orilla.",
+            category: "animo",
+            color: "#00cec9"
+        },
+        {
+            id: 23,
+            title: "Pequeños Pasos, Grandes Cambios",
+            content: "No te abrumes pensando en todo el camino por recorrer,\nconcéntrate en el siguiente paso, en la siguiente respiración.\nLos grandes logros se construyen con acciones pequeñas,\ncon perseverancia constante y fe inquebrantable.\n\nHoy da un paso, mañana da otro, pasado otro más,\ny sin darte cuenta habrás cruzado montañas enteras.\nCada esfuerzo, por mínimo que parezca, cuenta,\ncada decisión de seguir adelante te acerca a tu meta.\n\nConfía en el proceso, celebra los pequeños avances,\npronto mirarás atrás y te asombrarás de lo lejos que has llegado.",
+            category: "animo",
+            color: "#00b894"
+        },
+        {
+            id: 24,
+            title: "Tu Luz Interior",
+            content: "Hay dentro de ti una luz que ninguna oscuridad puede apagar,\nuna chispa divina que brilla incluso en las noches más largas.\nEs esa voz interior que te susurra 'sigue adelante',\nesa fuerza que emerge cuando todo parece perdido.\n\nAlimenta esa luz con pensamientos positivos,\ncon recuerdos de tus victorias, con fe en tu potencial.\nNo permitas que las dudas nublen tu brillo natural,\nni que los miedos opaquen tu resplandor interior.\n\nEres faro en tu propia tormenta, guía en tu propia oscuridad,\nconfía en que tu luz siempre encontrará el camino.",
+            category: "animo",
+            color: "#55efc4"
+        },
+        {
+            id: 25,
+            title: "Renacer de las Cenizas",
+            content: "Como el fénix que resurge de sus propias cenizas,\ntú tienes el poder de renacer una y otra vez.\nCada caída es oportunidad para levantarte más fuerte,\ncada final es comienzo de algo nuevo y mejor.\n\nNo temas a los cambios, abrázalos como oportunidades,\na las crisis como lecciones disfrazadas de problemas.\nTu capacidad de reinventarte es tu superpoder,\ntu resiliencia es el motor que impulsa tu evolución.\n\nHoy puede sentirse como el final, pero es solo un nuevo inicio,\nel prólogo de un capítulo más brillante de tu historia.",
+            category: "animo",
+            color: "#81ecec"
+        },
+        {
+            id: 26,
+            title: "Un Día a la Vez",
+            content: "No cargues con el peso de toda la semana hoy,\nno anticipes problemas que quizá nunca lleguen.\nVive este día, esta hora, este momento presente,\ncon la certeza de que es todo lo que necesitas enfrentar.\n\nMañana tendrás nuevas fuerzas para sus batallas,\npero hoy solo enfócate en lo que puedes manejar ahora.\nDivide los grandes desafíos en porciones pequeñas,\nconquista territorio poco a poco, sin prisa pero sin pausa.\n\nUn día a la vez, un respiro a la vez, un paso a la vez,\nasí se construyen los milagros y se alcanzan los sueños.",
+            category: "animo",
+            color: "#74b9ff"
+        },
+        {
+            id: 27,
+            title: "Eres Capaz y Merecedora",
+            content: "Repite conmigo: soy capaz, soy fuerte, soy suficiente,\n merezco la felicidad, el éxito, el amor que deseo.\nNo dejes que voces externas o internas te digan lo contrario,\nno permitas que viejas heridas definan tu valor actual.\n\nEres el resultado de todas las batallas que has ganado,\nde todos los obstáculos que has superado con gracia.\nTu historial demuestra que puedes con lo que viene,\nque tienes los recursos internos para triunfar.\n\nConfía en tu instinto, en tu inteligencia, en tu corazón,\nporque juntos forman un equipo imbatible.",
+            category: "animo",
+            color: "#0984e3"
+        },
+        {
+            id: 28,
+            title: "La Tormenta Pasa",
+            content: "En medio del huracán, recuerda que esto también pasará,\nque las nubes eventualmente se abrirán para dejar pasar el sol.\nLas tempestades no duran para siempre, son visitantes temporales,\nque vienen a limpiar, a renovar, a fortalecer.\n\nMientras tanto, refúgiate en tu interior, en tu paz mental,\nen esos espacios seguros que has construido dentro de ti.\nPermite que la lluvia lave lo que necesita ser limpiado,\nque el viento se lleve lo que ya no sirve en tu vida.\n\nDespués de la tormenta siempre viene la calma,\ny con ella, la claridad y la fuerza renovada.",
+            category: "animo",
+            color: "#00cec9"
+        },
+        {
+            id: 29,
+            title: "Tu Equipo de Apoyo",
+            content: "Recuerda que no estás sola en esta batalla,\nque hay un ejército de ángeles terrenales a tu alrededor.\nFamilia, amigos, y yo, siempre listos para tender la mano,\npara escuchar, para abrazar, para apoyar incondicionalmente.\n\nNo cargues todo el peso en tus hombros,\naprende a delegar, a pedir ayuda, a recibir apoyo.\nLa vulnerabilidad no es debilidad, es humanidad auténtica,\nes permitir que el amor de otros te fortalezca.\n\nJuntos somos más fuertes, nuestra unión multiplica fuerzas,\nformamos un equipo invencible contra cualquier adversidad.",
+            category: "animo",
+            color: "#a29bfe"
+        },
+        {
+            id: 30,
+            title: "El Poder de la Esperanza",
+            content: "Mantén viva la esperanza como una llama sagrada,\naliméntala con sueños, con fe, con acción constante.\nLa esperanza no es negar la realidad, sino trascenderla,\nes ver más allá de lo aparente hacia lo posible.\n\nMientras haya esperanza, hay posibilidad de cambio,\nhay semillas de futuro esperando germinar.\nTu esperanza es el imán que atrae soluciones,\nel faro que guía hacia puertos más seguros.\n\nConfía en que el universo conspira a tu favor,\nque cada experiencia, por difícil, te prepara para algo mejor.",
+            category: "animo",
+            color: "#6c5ce7"
+        },
+
+        // 🧘 PAUSA NECESARIA (1 poema especial)
+        {
+            id: 31,
+            title: "La Pausa Necesaria",
+            content: "Antes de cualquier promesa o gran hazaña,\npermítete este silencio, esta calma en la montaña.\nLa vida no es solo acción, es también respirar,\nes contemplar el horizonte, es atreverse a parar.\n\nEste momento es tuyo, una tregua bendita,\npara sanar el alma y recargar la energía infinita.\nNo hay culpa en la pausa, solo sabiduría y verdad,\nporque el mejor futuro se construye desde la serenidad.",
+            category: "pausa",
+            color: "#ffeaa7" 
+        },
+
+        // 💫 PROMESAS (10 poemas)
+        {
+            id: 41,
+            title: "Prometo Amarte Siempre",
+            content: "Prometo amarte en los días soleados y en los tormentosos,\ncuando la vida nos sonría y cuando nos presente desafíos.\nPrometo amarte en la salud radiante y en la enfermedad,\ncuando tengamos energía infinita y cuando estemos cansados.\n\nPrometo amarte cuando seas la versión más brillante de ti misma,\ny cuando tus luces se apaguen momentáneamente.\nPrometo amarte en tus días de superhéroe y en tus días humanos,\nporque amo cada faceta del ser extraordinario que eres.\n\nEsta promesa no tiene fecha de caducidad,\nes un compromiso eterno que renuevo con cada latido.",
+            category: "promesas",
+            color: "#fd79a8"
+        },
+        {
+            id: 42,
+            title: "Prometo Ser Tu Refugio",
+            content: "Prometo ser tu puerto seguro en medio de cualquier tempestad,\ntu lugar de calma cuando el mundo exterior sea caótico.\nPrometo escucharte sin juzgar cuando necesites desahogarte,\nabrazarte fuerte cuando las palabras no alcancen.\n\nPrometo ser tu compañero en las batallas y en las victorias,\ntu cómplice en los sueños y tu apoyo en los fracasos.\nEn mis brazos siempre encontrarás un santuario,\nun espacio sagrado donde puedes ser completamente tú.\n\nEsta promesa la hago con el alma y con el corazón,\nsabiendo que tu bienestar es mi mayor prioridad.",
+            category: "promesas",
+            color: "#ff9ff3"
+        },
+        {
+            id: 43,
+            title: "Prometo Crecer Contigo",
+            content: "Prometo crecer a tu lado, aprendiendo de tus enseñanzas,\nadaptándome a tus cambios y celebrando tu evolución.\nPrometo no estancarme ni permitir que nuestro amor se estanque,\nsino buscar siempre nuevas formas de fortalecerlo.\n\nPrometo ser estudiante de tu esencia y maestro de la mía,\ncompartiendo conocimientos y creciendo juntos en sabiduría.\nCada día contigo es una lección de amor y vida,\ny prometo estar atento para aprender todas las que me des.\n\nJuntos seremos jardineros de nuestro crecimiento mutuo,\nregando con paciencia y podando con amor cuando sea necesario.",
+            category: "promesas",
+            color: "#f8a5c2"
+        },
+        {
+            id: 44,
+            title: "Prometo Respetarte Siempre",
+            content: "Prometo respetar tu individualidad y tu espacio personal,\ntus sueños independientes y tu tiempo a solas.\nPrometo honrar tus decisiones aunque no las comparta,\nvalorar tu opinión incluso cuando difiera de la mía.\n\nPrometo respetar tus silencios tanto como tus palabras,\ntus momentos de introversión como tu extroversión.\nEres un universo completo y prometo explorarte con reverencia,\naceptando cada planeta y cada galaxia de tu ser.\n\nEl respeto es el cimiento sobre el que construimos nuestro amor,\ny prometo mantenerlo firme y sólido por siempre.",
+            category: "promesas",
+            color: "#ff6b9d"
+        },
+        {
+            id: 45,
+            title: "Prometo Ser Transparente",
+            content: "Prometo mostrarte tal cual soy, sin máscaras ni disfraces,\ncon mis virtudes y mis defectos, mis fortalezas y mis miedos.\nPrometo ser honesto incluso cuando la verdad sea incómoda,\nporque prefiero dolores temporales que mentiras eternas.\n\nPrometo compartir contigo mis pensamientos más profundos,\nmis sueños más locos y mis inseguridades más ocultas.\nEn tu presencia me siento seguro para ser vulnerable,\npara mostrar las partes de mí que otros no ven.\n\nEsta transparencia es mi regalo de confianza para ti,\nla prueba de que en tus manos mi corazón está seguro.",
+            category: "promesas",
+            color: "#e84393"
+        },
+        {
+            id: 46,
+            title: "Prometo Hacerte Reír",
+            content: "Prometo buscar siempre razones para hacerte sonreír,\npara escuchar tu risa que es música para mi alma.\nPrometo ser tu payaso personal en los días grises,\ntu compañero de travesuras en los momentos aburridos.\n\nPrometo recordar que la alegría es nutriente del amor,\nque las risas compartidas son vitaminas para nuestra relación.\nAun en los tiempos difíciles, prometo encontrar luz,\nun chiste tonto, un meme gracioso, un recuerdo feliz.\n\nTu felicidad es mi misión, tu sonrisa mi recompensa,\ny prometo trabajar cada día para merecerla.",
+            category: "promesas",
+            color: "#fdcb6e"
+        },
+        {
+            id: 47,
+            title: "Prometo Apoyar Tus Sueños",
+            content: "Prometo ser el fan número uno de todos tus proyectos,\nel animador incondicional de cada meta que te traces.\nPrometo creer en ti incluso cuando tú dudes,\nempujarte suavemente cuando necesites impulso.\n\nPrometo celebrar tus triunfos como si fueran míos,\ny consolarte en tus fracasos sin decir 'te lo dije'.\nTus sueños son sagrados y prometo tratarlos como tales,\nofreciendo mi apoyo, mis recursos y mi fe inquebrantable.\n\nJuntos escribiremos el guión de tus sueños cumplidos,\ncon mi mano sosteniendo la pluma y tu corazón dictando la historia.",
+            category: "promesas",
+            color: "#a29bfe"
+        },
+        {
+            id: 48,
+            title: "Prometo Perdonar y Pedir Perdón",
+            content: "Prometo perdonarte genuinamente cuando cometas errores,\nentendiendo que eres humana y el error es aprendizaje.\nPrometo no guardar rencores ni acumular resentimientos,\nsino hablar claro y dejar ir lo que necesita ser liberado.\n\nY prometo, con igual importancia, pedir perdón cuando me equivoque,\nreconocer mis fallas y trabajar para no repetirlas.\nEl perdón será el bálsamo que cure nuestras heridas,\nla medicina que mantenga sana nuestra relación.\n\nPerdonar y ser perdonado son dos caras de la misma moneda,\ny prometo practicar ambos con humildad y amor.",
+            category: "promesas",
+            color: "#6c5ce7"
+        },
+        {
+            id: 49,
+            title: "Prometo Ser Constante",
+            content: "Prometo amarte con la misma intensidad todos los días,\nno solo en los momentos especiales sino en lo cotidiano.\nPrometo demostrarte mi amor con acciones pequeñas y grandes,\ncon constancia que construya seguridad en tu corazón.\n\nPrometo no darte por sentado ni caer en la complacencia,\nsino esforzarme cada día por ser mejor para ti.\nEl amor no son solo palabras bonitas en momentos románticos,\nsino elecciones diarias de priorizarte y valorarte.\n\nMi constancia será el termómetro de mi amor verdadero,\nla prueba de que esto no es emoción pasajera sino decisión eterna.",
+            category: "promesas",
+            color: "#fd79a8"
+        },
+        {
+            id: 50,
+            title: "Prometo Eternidad",
+            content: "Prometo que mi amor por ti trascenderá el tiempo,\nque no se extinguirá con los años ni se debilitará con las pruebas.\nPrometo amarte en esta vida y en todas las que puedan existir,\nbuscando tu alma en cada reencarnación del universo.\n\nEsta promesa no cabe en un contrato ni en un papel,\nporque está escrita en el código mismo de mi existencia.\nEres mi destino, mi elección, mi verdad absoluta,\nla razón por la que creo en el amor eterno.\n\nDonde quiera que vayamos, whatever que seamos,\nmi promesa de amarte será la constante en nuestro multiverso.",
+            category: "promesas",
+            color: "#ff6b6b"
+        },
+
+        // 🌟 NUESTROS SUEÑOS (Mensaje de marcador de posición)
+        {
+            id: 51,
+            title: "Escribamos Juntos Nuestros Sueños",
+            content: "Todavía no hay nada en esta categoría...\npero pronto llenaré este espacio con los sueños más dulces dedicados solo a ti.",
+            category: "nuestros sueños",
+            color: "#f0932b" 
+        }
+    ];
+
+    // Elementos DOM
+    const poemsGrid = document.getElementById('poemsGrid');
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const newPoemBtn = document.getElementById('newPoemBtn');
+    const poemModal = document.getElementById('poemModal');
+    const closeBtn = document.querySelector('.close');
+    const poemForm = document.getElementById('poemForm');
+
+    // Cargar poemas al iniciar
+    document.addEventListener('DOMContentLoaded', () => {
+        renderPoems('all');
+        setupEventListeners();
+    });
+
+    // Configurar event listeners
+    function setupEventListeners() {
+        // Filtros de navegación
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Eliminar 'active' de todos los botones y añadir al seleccionado
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('bg-pink-500', 'text-white'));
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.add('text-pink-700', 'hover:bg-pink-100'));
+
+                btn.classList.add('bg-pink-500', 'text-white');
+                btn.classList.remove('text-pink-700', 'hover:bg-pink-100');
+                
+                renderPoems(btn.dataset.filter);
+            });
+        });
+
+        // Modal nuevo poema
+        newPoemBtn.addEventListener('click', () => {
+            poemModal.style.display = 'block';
+            poemForm.reset(); 
+        });
+
+        // Cerrar modal
+        closeBtn.addEventListener('click', () => {
+            poemModal.style.display = 'none';
+        });
+
+        // Cerrar modal haciendo click fuera
+        window.addEventListener('click', (e) => {
+            if (e.target === poemModal) {
+                poemModal.style.display = 'none';
+            }
+        });
+
+        // Enviar formulario
+        poemForm.addEventListener('submit', addNewPoem);
+    }
+
+    // Renderizar poemas
+    function renderPoems(filter = 'all') {
+        poemsGrid.innerHTML = '';
+        
+        const filteredPoems = filter === 'all' 
+            ? poems 
+            : poems.filter(poem => poem.category.toLowerCase() === filter.toLowerCase());
+        
+        if (filteredPoems.length === 0) {
+            poemsGrid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 text-xl font-semibold">
+                No hay poemas en esta categoría aún. ¡Sé el primero en escribir uno!
+            </div>`;
+            return;
+        }
+
+        filteredPoems.forEach(poem => {
+            const poemCard = createPoemCard(poem);
+            poemsGrid.appendChild(poemCard);
+        });
+    }
+
+    // Crear tarjeta de poema
+    function createPoemCard(poem) {
+        const card = document.createElement('div');
+        card.className = 'poem-card';
+        card.style.borderLeftColor = poem.color;
+        
+        // Reemplazar saltos de línea (\n) con etiquetas <br> para HTML
+        const formattedContent = poem.content.replace(/\n/g, '<br>');
+
+        card.innerHTML = `
+            <h3 class="poem-title">${poem.title}</h3>
+            <div class="poem-content">${formattedContent}</div>
+            <span class="poem-category">${getCategoryName(poem.category)}</span>
+        `;
+        
+        return card;
+    }
+
+    // Obtener nombre de categoría para visualización (ACTUALIZADA con 'pausa' y 'nuestros sueños')
+    function getCategoryName(category) {
+        const categories = {
+            'te amo': '💗 Te Amo',
+            'lo magico de amarte': '🤍 Lo Mágico de Amarte',
+            'animo': '💪 Ánimo',
+            'pausa': '🧘 Pausa Necesaria', 
+            'promesas': '💫 Promesas',
+            'nuestros sueños': '🌟 Nuestros Sueños'
+        };
+        // Devuelve el nombre amigable si existe, si no, usa el valor de la categoría
+        return categories[category.toLowerCase()] || category; 
+    }
+
+    // Agregar nuevo poema (función completada)
+    function addNewPoem(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('poemTitle').value;
+        const content = document.getElementById('poemContent').value;
+        // La categoría debe coincidir con los valores de data-filter (ej: "te amo", "animo")
+        const category = document.getElementById('poemCategory').value.toLowerCase(); 
+        const color = document.getElementById('poemColor').value;
+        
+        const newPoem = {
+            id: Date.now(), // ID único basado en la marca de tiempo
+            title,
+            content,
+            category,
+            color
+        };
+        
+        // 1. Agregar el nuevo poema a la base de datos
+        poems.push(newPoem);
+        
+        // 2. Renderizar la lista de poemas con el nuevo
+        // Regresa a 'all' para que el usuario vea su nuevo poema inmediatamente
+        document.querySelectorAll('.nav-btn').forEach(b => {
+             if (b.dataset.filter === 'all') {
+                b.classList.add('bg-pink-500', 'text-white');
+                b.classList.remove('text-pink-700', 'hover:bg-pink-100');
+            } else {
+                b.classList.remove('bg-pink-500', 'text-white');
+                b.classList.add('text-pink-700', 'hover:bg-pink-100');
+            }
+        });
+        
+        renderPoems('all'); 
+        
+        // 3. Cerrar el modal y limpiar el formulario
+        poemModal.style.display = 'none';
+        poemForm.reset();
+    }
+
+    </script>
+</body>
+</html>
